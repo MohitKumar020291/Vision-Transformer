@@ -5,6 +5,10 @@ import types
 import inspect
 from PIL import Image
 import copy
+import requests
+from urllib.request import urlopen
+
+
 
 functype = types.MethodType
 
@@ -30,9 +34,6 @@ for idx, block in enumerate(model._modules["blocks"]):
   model._modules["blocks"][idx].forward = functype(redifined_forward, block)
   block.my_index = idx
 
-from PIL import Image
-import requests
-from urllib.request import urlopen
 
 for model_ in [model, org_model]:
   img = Image.open(urlopen(
