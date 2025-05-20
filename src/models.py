@@ -352,52 +352,6 @@ class VisionTransformer(nn.Module):
     return x
 
 
-# class VITC(nn.Module):
-#   def __init__(
-#       self,
-#       vit_model: VisionTransformer,
-#       hidden_features: int = None,
-#       mlp_ratio: float = None,
-#       bias: bool = False,
-#       ):
-#     super().__init__()
-#     self.vit_model = vit_model
-#     self.in_features = self.vit_model.embed_dim
-#     self.mlp_ratio = mlp_ratio if mlp_ratio else 0.8
-#     self.hidden_features = int(hidden_features * mlp_ratio) if hidden_features else self.in_features
-
-#     self.bias = to_2tuple(bias)
-#     self.l1 = nn.Linear(
-#         in_features=self.in_features,
-#         out_features= self.hidden_features,
-#         bias=self.bias[0]
-#     )
-#     self.act1 = nn.GELU()
-#     self.l2 = nn.Linear(
-#         in_features=self.hidden_features,
-#         out_features=self.in_features,
-#         bias=self.bias[1]
-#     )
-#     self.act2 = nn.GELU()
-#     self.classifier = nn.Linear(
-#         in_features=self.in_features,
-#         out_features=self.vit_model.num_classes,
-#         bias=bias
-#     )
-#     self.softmax = nn.Softmax(dim=1) #dim could vary
-
-#   def forward(self, x: torch.Tensor):
-#     x = self.vit_model(x)
-#     x = x[:, 0] # due to this line
-#     x = self.l1(x)
-#     x = self.act1(x)
-#     x = self.l2(x)
-#     x = self.act2(x)
-#     x = self.classifier(x)
-#     output = self.softmax(x)
-#     return output
-
-
 class VITC(nn.Module):
   def __init__(self, vit_model: VisionTransformer):
     super().__init__()
