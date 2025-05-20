@@ -1,14 +1,16 @@
+"""
+Implementation of vision transformer from hugging face image model's vision transformer
+"""
+
 import torch
 import torch.nn as nn
 
-from typing import Type
+from typing import Type, Union, Tuple, Optional, Callable
 from functools import partial
 from itertools import repeat
 import collections.abc
 
-from typing import Union, Tuple, Optional, Callable
-from enum import Enum
-
+from ../helper/helper.py import to_2tuple
 
 class Attention(nn.Module):
   def __init__(
@@ -74,18 +76,6 @@ class Attention(nn.Module):
     x = self.proj(x)
     return x
 
-
-#Any x will be repeted n times if it is not iterable
-def _ntuple(n):
-  def parse(x):
-    if isinstance(x, collections.abc.Iterable) and not isinstance(x, str):
-      return tuple(x)
-    return tuple(repeat(x, n))
-  return parse
-
-to_2tuple = _ntuple(2)
-# to_2tuple(4)
-
 # This is for Vision Transformers only
 class MLP(nn.Module):
   def __init__(
@@ -118,15 +108,8 @@ class MLP(nn.Module):
   def forward(self, x):
     x = self.linear_layer1(x)
     x = self.ac1(x)
-    # if not self.vit:
-    #   x = self.layer_norm(x)
     x = self.linear_layer2(x)
     return x
-
-# x = torch.randn(8, 32, 768)
-# mlp = MLP(x.shape[-1])
-# print(mlp(x).shape)
-
 
 class LayerScale(nn.Module):
   def __init__(self, dim: int, init_values: float = 1e-5, inplace = False):
@@ -178,66 +161,6 @@ class Block(nn.Module):
     x = x + self.ls1(self.attn(self.norm1(x)))  # Residual around attention
     x = x + self.ls2(self.mlp(self.norm2(x)))   # Residual around MLP
     return x
-
-# Get the patch embeddings from an image using Conv2D
-
-class Format(str, Enum):
-  NCHW = 'NCHW'
-  NHWC = 'NHWC'
-  NCL = 'NCL'
-  NLC = 'NLC'
-
-def nchw_to(x: torch.Tensor, fmt: Format) -> torch.Tensor:
-  if fmt == "NHWC":
-    x = x.permute(0, 2, 3, 1)
-  elif fmt == Format.NLC:
-        x = x.flatten(2).transpose(1, 2)
-  elif fmt == Format.NCL:
-      x = x.flatten(2)
-  return x
-
-class PatchEmbed(nn.Module):
-  def __init__(
-      self,
-      image_size: Union[int, Tuple[int, int]] = 224,
-      patch_size: int = 16,
-      in_channels: int = 3,
-      embed_dim: int = 768,
-      norm_layer: Optional[Callable] = None,
-      flatten: bool = True,
-      bias: bool = False,
-      output_fmt: Optional[Format] = None
-      ):
-    super().__init__()
-    self.output_fmt = output_fmt
-    self.patch_size = to_2tuple(patch_size)
-    self.image_size, self.grid_size, self.num_patches = self._init_img_size(image_size)
-    self.flatten = flatten
-
-    # Hugging face is genius af - they also stole (not exactly) it from google
-    self.projection = nn.Conv2d(in_channels, embed_dim, kernel_size=self.patch_size, stride=self.patch_size, bias=bias)
-    nn.init.kaiming_normal_(self.projection.weight, mode='fan_in', nonlinearity='relu')
-    self.norm_layer = norm_layer(embed_dim) if norm_layer else nn.Identity()
-
-  def _init_img_size(self, image_size: Union[int, Tuple[int, int]]):
-    image_size = to_2tuple(image_size)
-    grid_size = [s//p for s, p in zip(image_size, self.patch_size)]
-    num_patches = grid_size[0] * grid_size[1]
-    return image_size, grid_size, num_patches
-
-  def forward(self, x: torch.Tensor):
-    B, C, H, W = x.shape
-    print(B, C, H, W)
-    assert(self.image_size[0] == H), "Input tensor's height does not match the model"
-    assert(self.image_size[1] == W), "Input tensor's height does not match the model"
-    x = self.projection(x)
-    if self.flatten:
-      x = x.flatten(2).transpose(1, 2) #BCHW -> BNC
-    elif self.output_fmt != "NCHW":
-      x = nchw_to(x)
-    x = self.norm_layer(x)
-    return x
-
 
 # Not handling cnns for downsampling now - using DViT
 class VisionTransformer(nn.Module):
@@ -335,8 +258,6 @@ class VisionTransformer(nn.Module):
     if self.class_token is not None:
         class_token = self.class_token.expand(B, -1, -1)
         x = torch.cat((class_token, x), dim=1)
-    # x = x + self.pos_embed
-    # x = self.norm_pre(x)
     x = self.norm_pre(x)
     x = x + self.pos_embed
     return x
@@ -350,16 +271,3 @@ class VisionTransformer(nn.Module):
     x = self.forward_features(x)
     x = self.forward_heads(x)
     return x
-
-
-class VITC(nn.Module):
-  def __init__(self, vit_model: VisionTransformer):
-    super().__init__()
-    self.vit_model = vit_model
-    self.head = nn.Linear(self.vit_model.embed_dim, self.vit_model.num_classes)
-
-  def forward(self, x: torch.Tensor):
-    x = self.vit_model(x)
-    x = x[:, 0]  # Class token
-    x = self.head(x)
-    return x  # Remove softmax (handled by CrossEntropyLoss)
