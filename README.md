@@ -1,6 +1,6 @@
 It is a Vision Transformer (yes it transforms images)
     
-- [ ] Right now - for generating better embeddings only
+- [ ] Right now - for generating best embeddings faster
 - [ ] embeddings for classification
 
 Goal is to expand to Vision models
