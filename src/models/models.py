@@ -4,13 +4,15 @@ Implementation of vision transformer from hugging face image model's vision tran
 
 import torch
 import torch.nn as nn
+from torch.profiler import record_function
 
 from typing import Type, Union, Tuple, Optional, Callable
 from functools import partial
 from itertools import repeat
-import collections.abc
 
-from ../helper/helper.py import to_2tuple
+from .patch_embeddings import PatchEmbed
+from utils.helper import to_2tuple
+
 
 class Attention(nn.Module):
   def __init__(
@@ -21,7 +23,7 @@ class Attention(nn.Module):
       fused_attention: bool = False,
       qk_norm: bool = False,
       proj_bias = True,
-      norm_layer: Type[nn.Module] = nn.LayerNorm
+      norm_layer = nn.LayerNorm
       ):
     super().__init__()
     dim % num_heads == 0, "dim should be divisible by num_heads"
@@ -60,17 +62,23 @@ class Attention(nn.Module):
   def forward(self, x: torch.Tensor):
     B, N, C = x.shape
     # B, N, 3, self.num_heads, self.head_dim -> 3, B, self.num_heads, N, self.head_dim
-    qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
+    with record_function("-------LINEAR-------"):
+        qkv = self.qkv(x)
+        print(x.shape, qkv.shape, self.qkv.weight.shape)
+    # with record_function("-------RESHAPE+PERMUTE-------"):
+    qkv = qkv.reshape(B, N, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
+    # with record_function("-------UNBIND+NORM-------"):
     q, k, v = qkv.unbind(0) # B, self.num_heads, N, self.head_dim
     q, k = self.q_norm(q), self.k_norm(k)
 
     if self.fused_attention:
       ...
     else:
-      q = q * self.scale # another smart way
-      attn = q @ k.transpose(-2, -1)
-      attn = attn.softmax(dim=-1)
-      x = attn @ v
+      # with record_function("ATTENTION"):
+          q = q * self.scale # another smart way
+          attn = q @ k.transpose(-2, -1)
+          attn = attn.softmax(dim=-1)
+          x = attn @ v
 
     x = x.transpose(1, 2).reshape(B, N, C)
     x = self.proj(x)
@@ -253,7 +261,8 @@ class VisionTransformer(nn.Module):
         nn.init.zeros_(m.bias)
 
   def forward_features(self, x):
-    x = self.patch_embed(x)
+    with profiler.record_function("MASK INDICES"):
+      x = self.patch_embed(x)
     B, N, D = x.shape
     if self.class_token is not None:
         class_token = self.class_token.expand(B, -1, -1)

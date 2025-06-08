@@ -1,0 +1,17 @@
+model:
+  type: ViT # more models to be added here
+  image_size: 32 # CIFAR10 basic
+  patch_size: 4
+  num_classes: 10
+
+training:
+  epochs: 1
+  batch_size: 32
+  learning_rate: 0.001
+  optimizer: adam
+  scheduler: sequential-lr
+  criterion: cross-entropy
+  use_cuda: True
+
+paths:
+  save_dir: experiments/runs

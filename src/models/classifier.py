@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from .models.py import VisionTransformer
+from models import VisionTransformer
 
 class VITC(nn.Module):
   def __init__(self, vit_model: VisionTransformer):
