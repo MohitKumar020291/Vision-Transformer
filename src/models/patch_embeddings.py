@@ -6,9 +6,10 @@ Implemented from the: https://github.com/huggingface/pytorch-image-models/blob/m
 import torch
 import torch.nn as nn
 
-from type import Optional, Callable, Tuple, Union
+from typing import Optional, Callable, Tuple, Union
 
-from ../helper/helper.py import to_2tuple, nchw_to
+from utils.helper import to_2tuple, nchw_to, Format
+
 
 class PatchEmbed(nn.Module):
   def __init__(
