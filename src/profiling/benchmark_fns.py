@@ -6,9 +6,11 @@ import torch.nn as nn
 import torch.profiler as profiler
 from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
 
-from typing import Optional, Dict
+from typing import Optional, Dict, Union, List, Tuple
+import time
 
-from utils.helper import getSetDevice
+# from utils import getSetDevice
+from utils.common import getSetDevice
 
 
 def benchmark(
@@ -24,8 +26,9 @@ def benchmark(
     steps=3,
     wait=1,
     warmup=1,
-    profiling_config: Optional[Dict] = None
-    ) -> profile:
+    profiling_config: Optional[Dict] = None,
+    return_tensor: bool = False
+    ) -> Union[Tuple[List[torch.Tensor], profile], profile]:
     """
         model: A initialized subclass of nn.Module model=NN(dim)
         input: Pass the input according to the model
@@ -54,6 +57,7 @@ def benchmark(
         active=active # for step=3 (steps=5-2), record + save trace
     )
 
+    outputs = list()
     with profile(
         activities=activities,
         schedule=schedule,
@@ -66,33 +70,40 @@ def benchmark(
         for i in range(steps):
             with profiler.record_function(f"{record_func_name}_{i}"):
                 try:
-                    _ = model(*pass_model_args) if pass_model_args else model(input)
+                    output = model(*pass_model_args) if pass_model_args else model(input)
+                    if return_tensor and isinstance(output, torch.Tensor):
+                        outputs.append(output)
                     torch.cuda.synchronize()
                 except Exception as e:
                     raise ValueError(f"ERROR during profiling from model: \n {e}") #pass the model number also (only for multiple models)
             prof.step()
-    return prof
+    
+    time.sleep(3)
+
+    if return_tensor and outputs:
+        return outputs, prof
+    return prof,
 
 
 def compare_models(
         models: list[nn.Module],
         config_benchmark: dict,
         print_bench: bool= True
-    ) -> None:
+    ):
     """
         model passed in config_benchmark will not be considered
     """
     for idx, model in enumerate(models):
         print(model)
         # Some times we may just want to benchmark model1 or model2
+        output = None
         if model:
             config_benchmark["model"] = model
             config_benchmark_ = config_benchmark.copy()
             config_benchmark_["compile"] = config_benchmark_["compile"][idx]
-            print(config_benchmark_["compile"])
-            prof = benchmark(**config_benchmark_)
+            output = benchmark(**config_benchmark_)
             if print_bench:
-                print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10)) if print_bench else print()
+                print(output[-1].key_averages().table(sort_by="cuda_time_total", row_limit=10)) if print_bench else print()
         else:
             print(f"-------------models[{idx}] is None, not a problem if did intentionally!-------------")
-    return
+    return output

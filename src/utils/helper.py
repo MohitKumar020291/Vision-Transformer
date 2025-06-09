@@ -1,9 +1,15 @@
 import torch
+import torch.nn as nn
 
 import collections.abc
 from itertools import repeat
 from enum import Enum
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Dict
+import yaml 
+import os
+import argparse
+
+from profiling import compare_models
 
 #Any x will be repeted n times if it is not iterable
 def _ntuple(n):
@@ -68,3 +74,87 @@ def getSetDevice() -> Tuple[bool, torch.device]:
     device = torch.device("cuda" if cuda_is_available else "cpu")
 
     return cuda_is_available, device
+
+
+def make_input(
+        device: torch.cuda.device, 
+        batch = True,
+        multihead = True
+        ):
+    """Has to be deleted"""
+    B, N, dim = 32, 100, 768
+
+    num_heads = 8
+    head_dim = dim // 8
+    shape = []
+
+    if batch:
+        shape.append(B) #[B]
+    shape.append(N) #[B,N]
+    if multihead:
+        shape.extend([num_heads, head_dim]) #[B,N,num_heads,head_dim]
+    else:
+        shape.append(dim) #[B,N,dim]
+
+    shape = tuple(shape)
+    input = torch.randn(shape, dtype=torch.float16, device=device)
+    if len(shape)==4:
+        input = input.reshape(shape)
+        # This makes the tensor non-contiguous and then reshape have to create a whole new tensor, copying it.
+        input = input.permute(0, 2, 1, 3)
+        while not input.is_contiguous():
+            input = input.contiguous()
+    return *shape, input
+
+
+# pass this into the helper.py
+# def CLI_args():
+#     parser = argparse.ArgumentParser()
+#     # provide_full_yaml 
+#     parser.add_argument('--pfy', type=str, required=False)
+#     parser.add_argument('--pathpfy', type=str, required=False)
+#     args = vars(parser.parse_args())
+#     if args.get("pfy") == 'True':
+#         if args.get("pathpfy") is None:
+#             raise ValueError(f"--pfy is True, but --pathpfy is missing. Received: pfy={args.get('pfy')}, pathpfy={args.get('pathpfy')}") #Is value error a correct error for absence of the path?
+#     return args
+
+
+
+def load_config(path="config/config.yaml"):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(base_dir, path)
+    with open(config_path, 'r') as f:
+        return yaml.safe_load(f)
+
+return_type_compare = Union[Tuple[List[torch.Tensor], torch.profiler.profile], torch.profiler.profile]
+def compare(
+        input: torch.Tensor,
+        models: list[nn.Module],
+        compile: list,
+        is_cuda: bool,
+        device: torch.cuda.device,
+        pass_model_args: Dict = None,
+        record_func_name: str = None,
+        return_tensor: bool = False
+) -> return_type_compare:
+    """The function to appropriately call compare_models"""
+    output_dir = "/mnt/c/Users/HP/Desktop/DeepLearning/profiler_output"
+
+    for model in models:
+        # Read the reason in src/profiling/benchmark_fns/compare_models
+        if model:
+            model.to(device)
+    config_benchmark = {
+        "pass_model_args": pass_model_args if pass_model_args else None,
+        "input": input,
+        "model": None, #to be skipped: just pass it here
+        "record_func_name":  record_func_name or "BENCH",
+        "compile": compile or [True] * len(models),
+        "return_tensor": return_tensor
+    }
+    output = compare_models(
+        models=models,
+        config_benchmark=config_benchmark
+    )
+    return output

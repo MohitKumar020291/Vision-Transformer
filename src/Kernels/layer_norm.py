@@ -306,7 +306,7 @@ def _layer_norm_bwd_dwdb(
     tl.store(FINAL_DB + cols, sum_db, mask=cols < N)
 
 
-class LayerNorm(torch.autograd.Function):
+class LayerNormTriton(torch.autograd.Function):
 
     @staticmethod
     def forward(
@@ -321,20 +321,17 @@ class LayerNorm(torch.autograd.Function):
             weight: A torch.Tensor with requires_grad = True
             bias: A torch.Tensor with requires_grad = True
         """
-        # Reshape x: [1, N] if it is not a 2d tensor
-        # Can this handle the shapes like - B, N, D
-        # If not, just launch kernels for each batch
-        x_arg = x.reshape(-1, x.shape[-1])
         y = torch.empty_like(x)
-        M, N = x_arg.shape
+        M, N = x.shape
         stride = N
         # Mean
         Mean = torch.empty((M,), dtype=x.dtype, device=x.device) # it is fast to initialize the torch.empty
-        RStd = torch.empty((M,), dtype=x.dtype, device=x.device)
+        RStd = torch.empty_like(Mean)
 
         # Less than 64KB per feature: enqueue fused kernel
         # Gives the number of elements with element_size = x.element_size can fit in 64KB
         # 64KB is a hardware limit and should be improved (according to hardware)
+        # This means handle each element individually
         MAX_FUSED_SIZE = 65536 // x.element_size()
         # triton.next_power_of_2: 8 < 9 -> 16, 16 < 19 -> 32
         BLOCK_SIZE = min(MAX_FUSED_SIZE, triton.next_power_of_2(N))
@@ -353,13 +350,13 @@ class LayerNorm(torch.autograd.Function):
 
         # Each block handles a row
         _layer_norm_fwd_fused[(M,)](
-            x_arg,
+            x,
             y,
             weight,
             bias,
             Mean,
             RStd, 
-            x_arg.stride(0), #Just a fancy way
+            x.stride(0), #Just a fancy way
             N,
             eps,
             BLOCK_SIZE,
@@ -432,8 +429,13 @@ class LayerNormModule(nn.Module):
         self.eps = eps
 
     def forward(self, x):
-        return LayerNorm.apply(
-            x,
+        # Reshape x: [1, N] if it is not a 2d tensor
+        # Can this handle the shapes like - B, N, D
+        # If not, just launch kernels for each batch
+        # x_arg = x.reshape(-1, x.shape[-1])
+        x_arg = x.view(-1, x.shape[-1])
+        return LayerNormTriton.apply(
+            x_arg,
             self.normalized_shape,
             self.weight,
             self.bias,
