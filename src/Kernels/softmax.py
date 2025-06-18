@@ -4,6 +4,7 @@ import torch.nn as nn
 import triton
 import triton.language as tl
 
+
 # @triton.autotune()
 @triton.jit
 def Softmaxfwd(
@@ -25,6 +26,38 @@ def Softmaxfwd(
 
     # Pytorch also truncates it
     tl.store(y_row_ptrs, x_softmax.to(tl.float16), mask=mask)
+
+
+@triton.jit
+def Softmaxbwd(
+    dy, # input stream of gradients
+    x, # All rows of softmax
+    dx, # output stream of gradients
+    D, # Number of columns
+    BLOCK_SIZE_N: tl.constexpr,
+):
+    row_id = tl.program_id(0)
+    cols_offset = tl.arange(0, BLOCK_SIZE_N)
+    mask = cols_offset < D  
+
+    # pointer arithematic
+    dy = dy + row_id * D + cols_offset
+    x = x + row_id * D + cols_offset
+    dx = dx + row_id * D + cols_offset
+
+    # load
+    dy = tl.load(dy + cols_offset, mask=mask).to(tl.float32)
+    x = tl.load(x + cols_offset, mask=mask).to(tl.float32)
+
+    # Dot product: sum_j (dy_j * y_j)
+    dot = tl.sum(dy * x)
+
+    # Compute gradient: dx_i = y_i * (dy_i - dot)
+    dx = x * (dy - dot)
+
+    # Store
+    tl.store(dx, dx.to(dy.dtype), mask=mask)
+
 
 def Softmaxbwd(
         x,
