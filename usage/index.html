@@ -340,16 +340,6 @@
 
 image_size, num_classes, trainloader = loadData(batch_size=64, resize=224)
 </code></pre>
-<hr />
-<pre><code class="language-python">import pytest
-from your_module.data_loader import loadData
-
-def test_load_data():
-    image_size, num_classes, loader = loadData(batch_size=8, resize=32)
-    assert isinstance(image_size, tuple)
-    assert num_classes == 10
-    assert hasattr(loader, '__iter__')
-</code></pre>
 
 
 
