@@ -274,30 +274,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#phase-4-write-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      ✅ Phase 4: Write Tests
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="✅ Phase 4: Write Tests">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#teststest_data_loaderpy" class="md-nav__link">
-    <span class="md-ellipsis">
-      tests/test_data_loader.py
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -341,30 +317,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#phase-4-write-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      ✅ Phase 4: Write Tests
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="✅ Phase 4: Write Tests">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#teststest_data_loaderpy" class="md-nav__link">
-    <span class="md-ellipsis">
-      tests/test_data_loader.py
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -384,20 +336,20 @@
 <h1 id="usage-guide">Usage Guide</h1>
 <h2 id="loaddata">loadData</h2>
 <p>Loads the CIFAR-10 dataset with PyTorch.</p>
-<p>```python
-from your_module.data_loader import loadData</p>
-<p>image_size, num_classes, trainloader = loadData(batch_size=64, resize=224)</p>
+<pre><code class="language-python">from your_module.data_loader import loadData
+
+image_size, num_classes, trainloader = loadData(batch_size=64, resize=224)
+</code></pre>
 <hr />
-<h2 id="phase-4-write-tests">✅ Phase 4: Write Tests</h2>
-<h3 id="teststest_data_loaderpy"><code>tests/test_data_loader.py</code></h3>
-<p>```python
-import pytest
-from your_module.data_loader import loadData</p>
-<p>def test_load_data():
+<pre><code class="language-python">import pytest
+from your_module.data_loader import loadData
+
+def test_load_data():
     image_size, num_classes, loader = loadData(batch_size=8, resize=32)
     assert isinstance(image_size, tuple)
     assert num_classes == 10
-    assert hasattr(loader, '<strong>iter</strong>')</p>
+    assert hasattr(loader, '__iter__')
+</code></pre>
 
 
 
