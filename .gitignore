@@ -4,3 +4,4 @@ src/models/__pycache__
 src/profiling/__pycache__
 src/training/__pycache__
 src/utils/__pycache__
+**/__pycache__/

@@ -1,4 +1,4 @@
-from Tests import (layer_norm_triton_implementation,
+from vitm.Tests import (layer_norm_triton_implementation,
                    softmax_triton_implementation
                    )
 

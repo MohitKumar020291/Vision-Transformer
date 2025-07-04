@@ -11,9 +11,9 @@ from torchvision import transforms
 from typing import Tuple, Union
 import os
 
-from models import VisionTransformer, VITC
-from data.dataloader import loadData
-from utils.helper import getParam
+from vitm.models import VisionTransformer, VITC
+from vitm.data import loadData
+from vitm.utils.helper import getParam
 from .callbacks import PrintLossCallback, ModelCheckpoint
 
 def move_batch_to_device(batch, device):
