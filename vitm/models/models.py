@@ -12,6 +12,16 @@ from itertools import repeat
 
 from vitm.models import PatchEmbed
 from vitm.utils.helper import to_2tuple
+from vitm.models.ParallelBlock import ParallelBlock
+
+
+class Parallel(nn.Module):
+    def __init__(self, *fns):
+        super().__init__()
+        self.fns = nn.ModuleList(fns)
+    
+    def forward(self, x):
+        return ([fn(x) for fn in self.fns])
 
 
 class Attention(nn.Module):
@@ -64,8 +74,8 @@ class Attention(nn.Module):
     # B, N, 3, self.num_heads, self.head_dim -> 3, B, self.num_heads, N, self.head_dim
     with record_function("-------LINEAR-------"):
         qkv = self.qkv(x)
-        print(x.shape, qkv.shape, self.qkv.weight.shape)
     # with record_function("-------RESHAPE+PERMUTE-------"):
+    # B, N, 3, 4, 16 -> 3, B, 4, N, 16
     qkv = qkv.reshape(B, N, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
     # with record_function("-------UNBIND+NORM-------"):
     q, k, v = qkv.unbind(0) # B, self.num_heads, N, self.head_dim
@@ -103,7 +113,7 @@ class MLP(nn.Module):
     self.in_features = in_features
     # self.hidden_features = self.in_features or hidden_features
     self.hidden_features = hidden_features if hidden_features is not None else self.in_features * 4
-    self.out_features = self.in_features or out_features
+    self.out_features = self.in_features or out_features #
 
     self.bias = to_2tuple(bias)
     self.linear_layer = partial(nn.Conv2d, kernel_size=1) if use_conv else nn.Linear
@@ -131,7 +141,37 @@ class LayerScale(nn.Module):
 
 class Block(nn.Module):
   """
-  A Block is a transformer-block
+  A single Transformer block used in Vision Transformers (ViT).
+
+  This block applies multi-head self-attention followed by a feed-forward MLP,
+  each wrapped with normalization, optional layer scaling, and residual connections.
+
+  Args:
+      dim (int): Embedding dimension (input and output).
+      num_heads (int): Number of attention heads.
+      mlp_ratio (float): Expansion factor for the MLP hidden layer (typically 4.0).
+      norm_layer (Type[nn.Module], optional): Normalization layer (default: `nn.LayerNorm`).
+      act_layer (Type[nn.Module], optional): Activation function (default: `nn.GELU`).
+      mlp_layer (Type[nn.Module], optional): MLP module to use (default: `MLP`).
+      vit (bool, optional): Flag indicating if this is used in a ViT setting (passed to MLP).
+
+  Attributes:
+      norm1 (nn.Module): Normalization before attention.
+      attn (nn.Module): Multi-head self-attention module.
+      ls1 (nn.Module): Layer scale applied to attention output.
+      norm2 (nn.Module): Normalization before MLP.
+      mlp (nn.Module): Feed-forward network.
+      ls2 (nn.Module): Layer scale applied to MLP output.
+      dim (int): Embedding dimension (stored for reference).
+
+  Forward Input:
+      x (torch.Tensor): Input tensor of shape (B, N, D) — where:
+          - B: batch size
+          - N: number of tokens
+          - D: embedding dimension
+
+  Forward Output:
+      x (torch.Tensor): Output tensor of the same shape (B, N, D)
   """
   def __init__(
       self,
@@ -170,8 +210,54 @@ class Block(nn.Module):
     x = x + self.ls2(self.mlp(self.norm2(x)))   # Residual around MLP
     return x
 
+
 # Not handling cnns for downsampling now - using DViT
 class VisionTransformer(nn.Module):
+  """
+  A flexible and modular implementation of the Vision Transformer (ViT).
+
+  This class divides input images into patches, embeds them, adds positional encodings,
+  and passes them through a stack of Transformer blocks to generate patch-level or
+  class-level representations.
+
+  Args:
+      image_size (Union[int, Tuple[int, int]]): Size of the input image (H, W).
+      patch_size (int): Size of each patch (assumes square patches).
+      num_classes (int): Number of target classes (used for downstream heads).
+      num_heads (int): Number of attention heads in each Transformer block.
+      mlp_ratio (float): Ratio of MLP hidden dim to embed dim (e.g., 4.0).
+      depth (int, optional): Number of Transformer blocks. Default is 12.
+      embed_dim (int, optional): Embedding dimension. Default is 768.
+      block_fn (Callable, optional): Block class to use (e.g., MultiheadAttention + MLP).
+      norm_layer (Optional[nn.Module], optional): Normalization layer for transformer blocks.
+      mlp_layer (Callable, optional): MLP class used inside each transformer block.
+      pos_embed (str, optional): Type of positional embedding. `"learn"` = learned parameters.
+      embed_norm_layer (Optional[nn.Module], optional): Optional normalization after patch embedding.
+      embed_layer (Optional[nn.Module], optional): Patch embedding module (default is `PatchEmbed`).
+      class_token (bool): Whether to prepend a learnable [CLS] token.
+      final_norm_layer (Optional[nn.Module], optional): Normalization after all blocks.
+      act_layer (Optional[nn.Module], optional): Activation layer (default is GELU).
+
+  Attributes:
+      patch_embed (nn.Module): Patch embedding module (e.g., Conv2d or linear projection).
+      class_token (nn.Parameter or None): Learnable [CLS] token.
+      pos_embed (nn.Parameter or None): Learnable positional embeddings.
+      norm_pre (nn.Module): Normalization before transformer blocks.
+      blocks (nn.Sequential): Stack of transformer blocks.
+      norm_final (nn.Module): Final normalization layer after all blocks.
+      feature_info (List[Dict]): Metadata for each block (e.g., for feature extraction).
+      embed_dim (int): Final embedding dimension.
+      num_classes (int): Number of classes for downstream heads.
+
+  Forward Input:    
+      x (torch.Tensor): Input image tensor of shape (B, C, H, W).    
+
+  Forward Output:   
+      x (torch.Tensor): Output token embeddings of shape (B, N, D), where:    
+          - B: batch size    
+          - N: number of tokens (patches + [CLS] token if used)    
+          - D: embedding dimension    
+  """
   def __init__(
       self,
       image_size: Union[int, Tuple[int, int]],
@@ -190,6 +276,8 @@ class VisionTransformer(nn.Module):
       class_token: bool = True,
       final_norm_layer: Optional[nn.Module] = None,
       act_layer: Optional[nn.Module] = nn.GELU,
+      parallel_block: bool = False,
+      shard_along_dims: tuple = None,
       ):
 
     super().__init__()
@@ -220,25 +308,26 @@ class VisionTransformer(nn.Module):
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
 
     self.norm_pre = norm_layer(embed_dim) if norm_layer else nn.Identity()
-    self.blocks = nn.Sequential(
-        *[
-            block_fn(
-                embed_dim,
-                num_heads,
-                mlp_ratio,
-                norm_layer,
-                act_layer,
-                mlp_layer,
-                vit=True
-              )
-            for _ in range(depth)
-        ]
-    )
+    block_fn = ParallelBlock if parallel_block else block_fn
+    self.blocks = nn.ModuleList([
+        block_fn(
+            embed_dim,
+            num_heads,
+            mlp_ratio,
+            norm_layer,
+            act_layer,
+            vit=True
+        )
+        for _ in range(depth)
+    ])
+
     self.norm_final = final_norm_layer(embed_dim) if final_norm_layer else nn.Identity()
     self.feature_info = [
         dict(module=f'block_{i}', num_chs=embed_dim)
         for i in range(depth)
     ]
+    self.parallel_block = parallel_block
+    self.shard_along_dims = shard_along_dims
     self._init_weights()
 
   # This is for the dynamic tokenizer - will look into it after sometime
@@ -261,8 +350,8 @@ class VisionTransformer(nn.Module):
         nn.init.zeros_(m.bias)
 
   def forward_features(self, x):
-    with profiler.record_function("MASK INDICES"):
-      x = self.patch_embed(x)
+    # with profiler.record_function("MASK INDICES"):
+    x = self.patch_embed(x)
     B, N, D = x.shape
     if self.class_token is not None:
         class_token = self.class_token.expand(B, -1, -1)
@@ -270,6 +359,42 @@ class VisionTransformer(nn.Module):
     x = self.norm_pre(x)
     x = x + self.pos_embed
     return x
+
+  def parallelize_blocks(self, device_id, world_size):
+    """Initialize TP + DP only once per model, per rank."""
+    from torch.distributed.tensor.parallel import (
+                                            parallelize_module, 
+                                            ColwiseParallel, 
+                                            RowwiseParallel)
+    from torch.distributed.fsdp import fully_shard
+    
+    from vitm.models.sv22b import create_mesh
+  
+    assert world_size % 1 == 0
+    rows = world_size // 1
+    cols = 1
+    mesh_shape = (rows, cols)
+    self.mesh = create_mesh(device="cuda", mesh_shape=mesh_shape, shard_along_dims=self.shard_along_dims)
+
+    tp_mesh = self.mesh["dim_1"]
+
+    from torch.distributed.tensor.parallel.fsdp import enable_2d_with_fsdp
+    enable_2d_with_fsdp()
+
+    plan = {
+        "fused_proj_1": ColwiseParallel(),
+        "attn.proj": ColwiseParallel(),
+        "mlp.out_proj": ColwiseParallel(),
+        "fused_proj_2": RowwiseParallel(),
+    }
+
+    for idx, block in enumerate(self.blocks):
+      self.blocks[idx] = parallelize_module(
+          block,
+          tp_mesh,
+          plan).to(device_id)
+
+    self.blocks = fully_shard(self.blocks, mesh=self.mesh["dim_0"])
 
   def forward_heads(self, x: torch.Tensor):
     x = self.blocks(x)

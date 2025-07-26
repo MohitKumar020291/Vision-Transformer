@@ -23,6 +23,9 @@ setup(
         'tabulate>=0.8',
         'setuptools',
         'wheel',
-        'twine'
+        'twine',
+        'mkdocs',
+        'mkdocs-material',
+        'mkdocstrings[python]',
     ],
 )

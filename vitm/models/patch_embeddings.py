@@ -62,7 +62,7 @@ class PatchEmbed(nn.Module):
     # A linear layer with input features = in_channels * kernel_size * kernel_size (if type kernel_size=int)
     # while the output features being embed_dim
     # N is decided by stride argument
-    # Finally,l H//patch_size = H_dash, W//patch_size=W_dash of patches => 1, embed_dim, H_dash, W_dash (1 b/c of 1 image)
+    # Finally, H//patch_size = H_dash, W//patch_size=W_dash of patches => 1, embed_dim, H_dash, W_dash (1 b/c of 1 image)
     # Then, for each batch we have (B, embed_dim, H_dash, W_dash)
     self.projection = nn.Conv2d(in_channels, embed_dim, kernel_size=self.patch_size, stride=self.patch_size, bias=bias)
     nn.init.kaiming_normal_(self.projection.weight, mode='fan_in', nonlinearity='relu')
@@ -111,7 +111,7 @@ class PatchEmbed(nn.Module):
     B, C, H, W = x.shape
     print(B, C, H, W)
     assert(self.image_size[0] == H), "Input tensor's height does not match the model"
-    assert(self.image_size[1] == W), "Input tensor's height does not match the model"
+    assert(self.image_size[1] == W), "Input tensor's width does not match the model"
     x = self.projection(x)
     if self.flatten:
       x = x.flatten(2).transpose(1, 2) #(B, embed_dim, H_dash, W_dash) -> B, embed_dim, N -> B, N, embed_dim

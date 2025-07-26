@@ -1,0 +1,19 @@
+site_name: vitm
+site_url: https://MohitKumar020291.github.io/Vision-Transformer/
+
+nav:
+  - Home: index.md
+  - data:
+    - loadData: data/loadData.md
+  - classifier:
+    - VITC: classifier/VITC.md
+  - models:
+    - VisionTransformer: models/VisionTransformer.md
+    - Block: models/Block.md
+
+theme:
+  name: readthedocs
+
+plugins:
+  - search
+  - mkdocstrings

@@ -2,7 +2,7 @@
 Unit tests for vitm.module.PatchEmbed
 
 To run doctest:
-    pytest --doctest-modules vitm/models/patch_embed.py
+    pytest --doctest-modules vitm/models/test_patch_embed.py
 """
 
 import torch

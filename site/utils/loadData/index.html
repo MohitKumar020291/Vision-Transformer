@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://MohitKumar020291.github.io/Vision-Transformer/utils/loadData/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>loadData - vitm</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "loadData";
+        var mkdocs_page_input_path = "utils/loadData.md";
+        var mkdocs_page_url = "/Vision-Transformer/utils/loadData/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> vitm
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Utils</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">loadData</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#vitm.data.dataloader.loadData">loadData</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">vitm</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Utils</li>
+      <li class="breadcrumb-item active">loadData</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="loaddata">loadData</h1>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="vitm.data.dataloader.loadData"></a>
+    <div class="doc doc-contents first">
+
+        <p>Load the CIFAR-10 dataset with optional resizing and return a DataLoader.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>batch_size</code></b>
+                  (<code><span title="int">int</span></code>, default:
+                      <code>32</code>
+)
+              –
+              <div class="doc-md-description">
+                <p>Number of samples per batch.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>resize</code></b>
+                  (<code><span title="int">int</span></code>, default:
+                      <code>0</code>
+)
+              –
+              <div class="doc-md-description">
+                <p>If non-zero, resizes image to (resize, resize).</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+<b><code>image_size</code></b>(                  <code><span title="Tuple">Tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
+)              –
+              <div class="doc-md-description">
+                <p>Width and height of the images.</p>
+              </div>
+            </li>
+            <li>
+<b><code>num_classes</code></b>(                  <code><span title="int">int</span></code>
+)              –
+              <div class="doc-md-description">
+                <p>Number of classes in the dataset.</p>
+              </div>
+            </li>
+            <li>
+<b><code>trainloader</code></b>(                  <code><span title="DataLoader">DataLoader</span></code>
+)              –
+              <div class="doc-md-description">
+                <p>PyTorch DataLoader with training data.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+            <details class="quote">
+              <summary>Source code in <code>vitm/data/dataloader.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">loadData</span><span class="p">(</span>
+    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+    <span class="n">resize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="p">):</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load the CIFAR-10 dataset with optional resizing and return a DataLoader.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch_size (int): Number of samples per batch.</span>
+<span class="sd">        resize (int): If non-zero, resizes image to (resize, resize).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        image_size (Tuple[int, int]): Width and height of the images.</span>
+<span class="sd">        num_classes (int): Number of classes in the dataset.</span>
+<span class="sd">        trainloader (DataLoader): PyTorch DataLoader with training data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+  <span class="n">compose_arg</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+    <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">((</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">))</span>
+  <span class="p">]</span>
+  <span class="k">if</span> <span class="n">resize</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">compose_arg</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Resize</span><span class="p">(</span><span class="n">resize</span><span class="p">),)</span>
+  <span class="n">transform</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">(</span><span class="n">compose_arg</span><span class="p">)</span>
+  <span class="c1"># Take the dataset name through the CLI and check if the dataset is available or not?</span>
+  <span class="c1"># If the dataset has to be taken from other resources then - clean it first</span>
+  <span class="n">trainset</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">CIFAR10</span><span class="p">(</span>
+                <span class="n">root</span><span class="o">=</span><span class="s1">&#39;./data&#39;</span><span class="p">,</span> 
+                <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+                <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span>
+  <span class="n">subset_indices</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">trainset</span><span class="p">)),</span> <span class="mi">50000</span><span class="p">)</span>
+  <span class="n">train_subset</span> <span class="o">=</span> <span class="n">Subset</span><span class="p">(</span><span class="n">trainset</span><span class="p">,</span> <span class="n">subset_indices</span><span class="p">)</span>
+  <span class="n">trainloader</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">(</span><span class="n">train_subset</span><span class="p">,</span> 
+                                          <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                                          <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+                                          <span class="n">num_workers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="c1"># num_workers needs to be tuned</span>
+                                          <span class="n">pin_memory</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  <span class="n">classes</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;plane&#39;</span><span class="p">,</span> <span class="s1">&#39;car&#39;</span><span class="p">,</span> <span class="s1">&#39;bird&#39;</span><span class="p">,</span> <span class="s1">&#39;cat&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;deer&#39;</span><span class="p">,</span> <span class="s1">&#39;dog&#39;</span><span class="p">,</span> <span class="s1">&#39;frog&#39;</span><span class="p">,</span> <span class="s1">&#39;horse&#39;</span><span class="p">,</span> <span class="s1">&#39;ship&#39;</span><span class="p">,</span> <span class="s1">&#39;truck&#39;</span><span class="p">)</span>
+
+
+  <span class="c1"># making a vision transformer model</span>
+  <span class="n">data_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">trainloader</span><span class="p">)</span>
+  <span class="n">images</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">data_iter</span><span class="p">)</span>
+  <span class="n">num_classes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
+  <span class="n">image_shape</span> <span class="o">=</span> <span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+  <span class="n">image_size</span> <span class="o">=</span> <span class="n">image_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">image_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+  <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;DATA INFO:&quot;</span><span class="p">)</span>
+  <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;# Samples:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">trainloader</span><span class="o">.</span><span class="n">dataset</span><span class="p">))</span> 
+  <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;# Classes:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">))</span>
+  <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Image size:&quot;</span><span class="p">,</span> <span class="n">image_size</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">image_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">trainloader</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div><pre><code class="language-python">from vitm.data.dataloader import loadData
+
+image_size, num_classes, trainloader = loadData(batch_size=64, resize=224)
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../.." class="btn btn-neutral float-left" title="Home"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../.." style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

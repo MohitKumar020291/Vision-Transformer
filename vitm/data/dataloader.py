@@ -10,6 +10,18 @@ def loadData(
     batch_size: int = 32,
     resize: int = 0
   ):
+  """
+    Load the CIFAR-10 dataset with optional resizing and return a DataLoader.
+
+    Args:
+        batch_size (int): Number of samples per batch.
+        resize (int): If non-zero, resizes image to (resize, resize).
+
+    Returns:
+        image_size (Tuple[int, int]): Width and height of the images.
+        num_classes (int): Number of classes in the dataset.
+        trainloader (DataLoader): PyTorch DataLoader with training data.
+    """
   compose_arg = [
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))

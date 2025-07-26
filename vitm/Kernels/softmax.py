@@ -11,7 +11,7 @@ def Softmaxfwd(
     x, # Input pointer
     y, # output pinter
     stride: tl.constexpr,
-    D, # Number of columns, might change BLOCK_SIZE_N, that's why having passing it separately
+    D, # Number of columns, might change BLOCK_SIZE_N, that's why have to pass it separately
     BLOCK_SIZE_N: tl.constexpr, # It is just number of columns (768, possible)
 ):
     row_idx = tl.program_id(0) # For each row

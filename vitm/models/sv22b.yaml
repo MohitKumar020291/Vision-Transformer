@@ -1,0 +1,3 @@
+dim: 32
+num_heads: 8
+mlp_ratio: 4.0
