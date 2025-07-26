@@ -12,7 +12,7 @@ from itertools import repeat
 
 from vitm.models import PatchEmbed
 from vitm.utils.helper import to_2tuple
-from vitm.models.ParallelBlock import ParallelBlock
+from vitm.models.parallel_block import ParallelBlock
 
 
 class Parallel(nn.Module):
@@ -395,6 +395,15 @@ class VisionTransformer(nn.Module):
           plan).to(device_id)
 
     self.blocks = fully_shard(self.blocks, mesh=self.mesh["dim_0"])
+
+  def spawn_parallel(
+        self,
+        device_id: int,
+        world_size: int,
+        path_to_config: str = "models/sv22b.yaml",
+        ):
+     
+     pass
 
   def forward_heads(self, x: torch.Tensor):
     x = self.blocks(x)

@@ -4,7 +4,7 @@ from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
 
 import os
 
-from vitm.models.ParallelBlock import ParallelBlockMultiHeadAttention
+from vitm.models.parallel_block import ParallelBlockMultiHeadAttention
 
 
 def cpu_profile_parallel_attention(output_dir="/mnt/c/Users/HP/Desktop/DeepLearning/profiler_output"):

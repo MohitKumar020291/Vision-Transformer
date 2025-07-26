@@ -10,7 +10,7 @@ from torch.distributed.tensor.parallel import (
                                             parallelize_module, 
                                             ColwiseParallel, 
                                             RowwiseParallel)
-from vitm.models.ParallelBlock import ParallelBlock
+from vitm.models.parallel_block import ParallelBlock
 import numpy as np
 from typing import Union, List
 from enum import Enum
@@ -29,7 +29,8 @@ def setup(device_id, world_size) -> int:
     if not dist.is_initialized():
         dist.init_process_group(
             "nccl" if torch.cuda.is_available() else "gloo",
-            rank=device_id, world_size=world_size
+            rank=device_id, world_size=world_size,
+            init_method="env://"
         )
 
     avail_device_id = device_id % world_size
@@ -184,8 +185,11 @@ def pre_configure_model(path_to_config: str = "models/sv22b.yaml"):
 def tk_parallelism_test_function(
         device_id: int,
         world_size: int,
+        result_queue = None,
+        result_pipe = None,
         path_to_config: str = "models/sv22b.yaml",
 ):
+    setup(device_id, world_size)
     assert world_size % 1 == 0, f"world_size={world_size} must be divisible by 4"
     rows = world_size // 1
     cols = 1
@@ -193,33 +197,50 @@ def tk_parallelism_test_function(
     mesh = create_mesh(device="cuda", mesh_shape=mesh_shape, shard_along_dims=None)
     dim, num_heads, mlp_ratio = pre_configure_model(path_to_config)
 
-    model = ParallelBlock(
-        dim=dim,
-        num_heads=num_heads,
-        mlp_ratio=mlp_ratio
-    )
+    model = nn.ModuleList([
+        ParallelBlock(
+            dim=dim,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio
+    ).to(f"cuda:{device_id}")
+        for _ in range(2)])
 
     dp_mesh = mesh["dim_0"]
     tp_mesh = mesh["dim_1"]
     
-    plan = {"fused_proj_1": ColwiseParallel(),
+    plan = {
+        "fused_proj_1": ColwiseParallel(),
         "attn.proj": ColwiseParallel(),
         "mlp.out_proj": ColwiseParallel(),
-        "fused_proj_2": RowwiseParallel()}
-    model_tp = parallelize_module(
-        model,
-        tp_mesh,
-        plan).to(device_id)
-    model_2d = fully_shard(model_tp, mesh=dp_mesh)
+        "fused_proj_2": RowwiseParallel()
+    }
 
     input_data = torch.randn(8, 3, dim).to(f"cuda:{device_id}")
+    logits = input_data
 
-    logits = model_2d(input_data)
+    gathered_x = None
+    for model_ in model:
+        test_output = model_(logits)
+        model_tp = parallelize_module(model_, tp_mesh, plan).to(device_id)
+        model_2d = fully_shard(model_tp, mesh=dp_mesh)
+        logits = model_2d(logits)
 
-    dist.destroy_process_group()
+        assert(torch.allclose(test_output, logits, atol=1e-6)), "Output of parallelism is not equal to the original"
 
-    return logits
+    gathered_x = [
+        torch.empty_like(logits, device=f"cuda:{device_id}") for _ in range(world_size)
+    ]
+    dist.all_gather(gathered_x, logits)
 
+    if dist.get_rank() == 0:
+        # Return final tensor concatenated from all ranks
+        dist.destroy_process_group()
+        gathered_tensor = torch.cat(gathered_x, dim=0).cpu()
+        if result_queue is not None:
+            result_queue.put(gathered_tensor)
+    else:
+        dist.destroy_process_group()
+        return None
 
 
 def main():
@@ -236,7 +257,61 @@ def main():
     )
 
 
-if __name__ == "__main__":
-    main()
+def using_queue():
+    from torch.multiprocessing import get_context
+    ctx = get_context("spawn")
+    result_queue = ctx.SimpleQueue()
+    device_counts = torch.cuda.device_count()
+    spawn(
+        tk_parallelism_test_function,
+        args=(device_counts, result_queue, "models/sv22b.yaml"),
+        nprocs=device_counts,
+        join=True
+    )
+    print("==========JOB DONE==========")
+    results = [result_queue.get() for _ in range(device_counts)]
+    results.sort()
+    for device_id, output in results:
+        print(f"[Rank {device_id}] Output logits shape: {output.shape}")
 
+
+def using_pipe():
+    from torch.multiprocessing import Pipe
+    device_counts = torch.cuda.device_count()
+    parent_conn, child_conn = Pipe()
+    spawn(
+        tk_parallelism_test_function,
+        args=(device_counts, None, child_conn, "models/sv22b.yaml"),
+        nprocs=device_counts,
+        join=True
+    )
+    results = []
+    while parent_conn.poll():
+        results.append(parent_conn.recv())
+
+
+# if __name__ == "__main__":
+#     # using_queue()
+#     import os
+
+#     rank = int(os.environ["RANK"])
+#     world_size = int(os.environ["WORLD_SIZE"])
+#     local_rank = int(os.environ["LOCAL_RANK"])
+
+#     tk_parallelism_test_function(local_rank, world_size)
+
+
+if __name__ == "__main__":
+    world_size = torch.cuda.device_count()
+    result_queue = Queue()
+
+    spawn(
+        tk_parallelism_test_function,
+        args=(world_size, result_queue),
+        nprocs=world_size,
+        join=True
+    )
+
+    result = result_queue.get()
+    print("Got result from rank 0:", result.shape)
 

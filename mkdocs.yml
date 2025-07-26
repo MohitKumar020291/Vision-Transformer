@@ -10,6 +10,10 @@ nav:
   - models:
     - VisionTransformer: models/VisionTransformer.md
     - Block: models/Block.md
+    - ParallelBlock: models/ParallelBlock.md
+  - train:
+    - config: train/config.md
+
 
 theme:
   name: readthedocs

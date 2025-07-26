@@ -69,7 +69,6 @@ def test_vision_transformer_parallel(device_id, world_size, path_to_config="mode
 
     return out
 
-
 def test_vision_transformer_parallel_run():
     import os
     rank = int(os.environ["RANK"])

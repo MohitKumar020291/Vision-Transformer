@@ -4,6 +4,20 @@ from typing import Type
 
 
 class LayerScale(nn.Module):
+  """
+    Applies a learnable scaling factor to the input tensor.
+
+    Typically used after residual connections in Transformer blocks to stabilize training,
+    especially for very deep models (e.g., >24 layers in ViTs).
+
+    Args:
+        dim (int): Dimensionality of the input and scaling vector.
+        init_values (float): Initial value for scaling parameters (default: 1e-5).
+        inplace (bool): If True, performs the operation in-place (default: False).
+
+    Attributes:
+        gamma (nn.Parameter): Learnable scaling parameters of shape (dim,).
+    """
   def __init__(self, dim: int, init_values: float = 1e-5, inplace = False):
     super().__init__()
     self.gamma = nn.Parameter(torch.ones(dim) * init_values)
@@ -14,6 +28,29 @@ class LayerScale(nn.Module):
 
 
 class ParallelBlockMultiHeadAttention(nn.Module):
+    """
+    A multi-head attention module with QK normalization and parallel processing.
+
+    This module expects Q, K, V to be fused into a single tensor and handles
+    Q/K normalization to improve training stability (especially in large ViTs).
+
+    Args:
+        dim (int): Total embedding dimension of the input.
+        num_heads (int): Number of attention heads.
+        norm_layer (Type[nn.Module]): Normalization layer used for Q and K (default: nn.LayerNorm).
+
+    Attributes:
+        q_norm (nn.Module): Normalization applied to the query tensor.
+        k_norm (nn.Module): Normalization applied to the key tensor.
+        proj (nn.Linear): Linear projection applied after attention.
+
+    Forward Input:
+        QKV (torch.Tensor): Fused input tensor of shape (B, N, 3 * dim),
+                            where Q, K, V are concatenated along the last dimension.
+
+    Forward Output:
+        x (torch.Tensor): Output tensor of shape (B, N, dim).
+    """
     def __init__(
             self,
             dim,
@@ -56,6 +93,22 @@ class ParallelBlockMultiHeadAttention(nn.Module):
 
 
 class MLP(nn.Module):
+    """
+    A lightweight MLP used in Transformer-style blocks.
+
+    This MLP applies an activation function followed by a linear projection.
+    It expects that the input has already been projected to the hidden dimension.
+
+    Args:
+        mlp_hidden_features (int): Size of the hidden representation.
+        out_features (int): Output dimensionality, typically same as input to the block.
+        act_layer (Type[nn.Module]): Activation function (default: nn.GELU).
+        bias (bool): Whether to include a bias term in the output projection (default: True).
+
+    Attributes:
+        act_layer (nn.Module): Activation function.
+        out_proj (nn.Linear): Output projection layer.
+    """
     def __init__(
             self,
             mlp_hidden_features: int,
@@ -74,6 +127,41 @@ class MLP(nn.Module):
 
 
 class ParallelBlock(nn.Module):
+    """
+    A fused Transformer block with parallel attention and MLP streams.
+    Implemented from the paper: https://arxiv.org/abs/2302.05442  
+    This block performs:  
+      - LayerNorm on input.   
+      - A fused projection that creates Q, K, V and MLP hidden features simultaneously.    
+      - Multi-head attention with normalized Q/K.    
+      - A lightweight MLP.   
+      - Concatenation of attention and MLP outputs.   
+      - Final projection and optional LayerScale before a residual addition.   
+
+    This is optimized for compute efficiency and convergence in large-scale ViTs.   
+
+    Args:   
+        dim (int): Embedding dimension.
+        num_heads (int): Number of attention heads.
+        mlp_ratio (float): Fraction of `dim` to use for the MLP hidden layer (default: 0.7).
+        act_layer (Type[nn.Module]): Activation function used in the MLP (default: nn.GELU).
+        mlp_bias (bool): Whether to include a bias in the MLP output (default: False).
+        vit (bool): If True, assumes ViT-style behavior (currently unused, reserved for extensions).
+
+    Attributes:
+        norm (nn.LayerNorm): Normalization applied before the fused projection.
+        fused_proj_1 (nn.Linear): Projects input to QKV + MLP hidden features.
+        attn (ParallelBlockMultiHeadAttention): Multi-head self-attention module.
+        mlp (MLP): Lightweight feed-forward network.
+        fused_proj_2 (nn.Linear): Projects concatenated attention + MLP outputs back to `dim`.
+        layer_scale (LayerScale): Optional learnable scaling before residual addition.
+
+    Forward Input:
+        `x (torch.Tensor)`: Input tensor of shape (B, N, dim)
+
+    Forward Output:
+        `output (torch.Tensor)`: Output tensor of shape (B, N, dim)
+    """
     def __init__(
             self, 
             dim, 

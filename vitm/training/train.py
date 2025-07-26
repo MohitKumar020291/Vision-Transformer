@@ -16,6 +16,22 @@ from vitm.data import loadData
 from vitm.utils.helper import getParam
 from .callbacks import PrintLossCallback, ModelCheckpoint
 
+import importlib.util
+import args
+
+
+
+def load_data_from_path(path: str):
+    spec = importlib.util.spec_from_file_location("user", path)
+    user_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(user_module)
+    if hasattr(user_module, "loadData"):
+        return user_module.loadData
+    else:
+        raise AttributeError("The provided file does not contain a 'loadData' function.")
+
+
+
 def move_batch_to_device(batch, device):
     if isinstance(batch, torch.Tensor):
         return batch.to(device)
@@ -133,6 +149,7 @@ def train_model(
     config: dict
     ):
     print(config)
+    loadData = load_data_from_path(args.load_data) if args.load_data else loadData
     model_path, epochs, batch_size, optimizer, scheduler, criterion, use_cuda = modelSpecs(config)
     cuda_is_available = torch.cuda.is_available()
     use_cuda = cuda_is_available
@@ -215,9 +232,6 @@ def train_model(
                 method = getattr(cb, 'on_batch_end', None)
                 if callable(method):
                     method(i, logs)
-            
-            print(prof.key_averages(group_by_stack_n=5).table(sort_by='cuda_time_total', row_limit=5))
-            break
         
         logs = {"val_loss": running_loss}
         for cb in callbacks:
@@ -235,3 +249,16 @@ def train_model(
     model_path)
 
     print("Saved model! ")
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Train a Vision Transformer model.")
+    parser.add_argument("--config", type=str, required=True, help="Path to the configuration file.")
+    parser.add_argument("--load_data", type=str, help="Path to the custom data loader module.")
+    args = parser.parse_args()
+
+    config = importlib.import_module(args.config).config
+
+    # Start training
+    train_model(config)
