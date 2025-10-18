@@ -1,1 +1,3 @@
 - The documentation and benchmarking of the project is ready, to be updated here.
+- [ ] benchmarking
+- [ ] update the documentation
